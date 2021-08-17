@@ -154,12 +154,88 @@ class add_CAN(QMainWindow):
         in_dock.setLayout(bvl)
         dock.setWidget(in_dock)
 
+class add_LIN(QMainWindow):
+    def __init__(self):
+        super().__init__
+        dock = QDockWidget()
+        dock.setWindowTitle("LIN视图")
+        w.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
+        in_dock = QWidget()
+        bvl=QVBoxLayout()
+        bhl=QHBoxLayout()
+        bvl.addLayout(bhl)
+        device_channel_title = QLabel(text="设备及通道:")
+        bhl.addWidget(device_channel_title)
+        device_channel_list = QComboBox()
+        # 尝试连接can盒子
+        DevHandles = (c_uint * 20)()
+        # Scan device
+        ret = USB_ScanDevice(byref(DevHandles))
+        if (ret == 0):
+            print("No device connected!")
+            exit()
+        else:
+            print("Have %d device connected!" % ret)
+        # Open device
+        ret = USB_OpenDevice(DevHandles[0])
+        if (bool(ret)):
+            print("Open device success!")
+        else:
+            print("Open device faild!")
+            exit()
+        # Get device infomation
+        USB2XXXInfo = DEVICE_INFO()
+        USB2XXXFunctionString = (c_char * 256)()
+        ret = DEV_GetDeviceInfo(DevHandles[0], byref(USB2XXXInfo), byref(USB2XXXFunctionString))
+        if (bool(ret)):
+            print("USB2XXX device infomation:")
+            print("--Firmware Name: %s" % bytes(USB2XXXInfo.FirmwareName).decode('ascii'))
+            print("--Firmware Version: v%d.%d.%d" % (
+            (USB2XXXInfo.FirmwareVersion >> 24) & 0xFF, (USB2XXXInfo.FirmwareVersion >> 16) & 0xFF,
+            USB2XXXInfo.FirmwareVersion & 0xFFFF))
+            print("--Hardware Version: v%d.%d.%d" % (
+            (USB2XXXInfo.HardwareVersion >> 24) & 0xFF, (USB2XXXInfo.HardwareVersion >> 16) & 0xFF,
+            USB2XXXInfo.HardwareVersion & 0xFFFF))
+            print("--Build Date: %s" % bytes(USB2XXXInfo.BuildDate).decode('ascii'))
+            print("--Serial Number: ", end='')
+            for i in range(0, len(USB2XXXInfo.SerialNumber)):
+                print("%08X" % USB2XXXInfo.SerialNumber[i], end='')
+            print("")
+            print("--Function String: %s" % bytes(USB2XXXFunctionString.value).decode('ascii'))
+        else:
+            print("Get device infomation faild!")
+            exit()
+        can = ["[%08X] [CAN1]" % USB2XXXInfo.SerialNumber[len(USB2XXXInfo.SerialNumber) - 1],
+            "[%08X] [CAN2]" % USB2XXXInfo.SerialNumber[len(USB2XXXInfo.SerialNumber) - 1]]
+        device_channel_list.addItems(can)
+        bhl.addWidget(device_channel_list)
+        save=QPushButton("保存数据")
+        bhl.addWidget(save)
+        delete=QPushButton("清除数据")
+        bhl.addWidget(delete)
+        stop=QPushButton("暂停显示")
+        bhl.addWidget(stop)
+        run=QPushButton("滚动显示")
+        bhl.addWidget(run)
+        Filter=QPushButton("数据过滤")
+        bhl.addWidget(Filter)
+        setting=QPushButton("显示设置")
+        bhl.addWidget(setting)
+        update=QPushButton("更新显示")
+        bhl.addWidget(update)
+        tw = QTableWidget(10, 10)
+        bvl.addWidget(tw)
+        tw.setHorizontalHeaderLabels(['序号', '帧ID', '长度', '数据', '时间戳', '方向', '帧类型', 'CAN类型', '通道号', '设备号'])
+        in_dock.setLayout(bvl)
+        dock.setWidget(in_dock)
+
 
 class device_info(QMainWindow):
     def __init__(self):
         super().__init__
-        info = QDialog()
+        info = QMessageBox()
         info_ql = QLabel(info, text=device_info_toString())
+        info.addw
         info.setFixedSize(310, 100)
         info.show()
         info.exec_()
@@ -224,6 +300,9 @@ if __name__ == "__main__":
 
     device_info_act = QAction(QIcon("./pycharm.ico"), "设备信息")
     device_info_act.triggered.connect(device_info)
+
+    add_LIN_act = QAction(QIcon("./pycharm.ico"), "新增LIN信息")
+    add_LIN_act.triggered.connect(add_LIN)
     # 创建工具栏
     toolbar = QToolBar('工具栏')
     w.addToolBar(toolbar)
@@ -234,9 +313,12 @@ if __name__ == "__main__":
     CANtool = QMenu()
     CANtool.addActions([add_CAN_act])
 
+    LINtool = QMenu()
+    LINtool.addActions([add_LIN_act])
+
     addtoolbtn(toolbar, "设备管理", QIcon("./img/设备管理.svg"), devicetool)
     addtoolbtn(toolbar, "新增CAN视图", QIcon("./img/视图模式.svg"), CANtool)
-    addtoolbtn(toolbar, "新增LIN视图", QIcon("./img/视图模式.svg"), devicetool)
+    addtoolbtn(toolbar, "新增LIN视图", QIcon("./img/视图模式.svg"), LINtool)
     addtoolbtn(toolbar, "视图管理", QIcon("./img/视图配置.svg"), devicetool)
     toolbar.addSeparator()
     addtoolbtn(toolbar, "发送CAN数据", QIcon("./img/上传.svg"), devicetool)
