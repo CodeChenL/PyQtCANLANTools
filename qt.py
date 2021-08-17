@@ -289,6 +289,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     # 创建主界面
     w = QMainWindow()
+    w.setMinimumHeight(500)
     w.setWindowTitle("PyQtCANLINTools")
     w.setWindowIcon(QIcon("./pycharm.ico"))
     # 创建动作
